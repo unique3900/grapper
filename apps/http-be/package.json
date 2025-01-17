@@ -1,0 +1,23 @@
+{
+  "name": "http-be",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc -b",
+    "start": "SET NODE_ENV=production node dist/index.js",
+    "dev": "npm run build && SET NODE_ENV=dev node dist/index.js"
+  },
+  "devDependencies": {
+    "@repo/typescript-config": "*"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@types/express": "^5.0.0",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "typescript": "^5.7.3"
+  }
+}
