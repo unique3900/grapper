@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,41 +7,157 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model admin{
-  id            String          @id          @default(uuid()) 
-  name          String
-  email         String          @unique
-  password      String  
-}
-
-model user{
-  id            String          @id           @default(uuid())
-  name          String
-  email         String          @unique
-  password      String  
-  verified      Boolean                       @default(false)
-}
-
-model auction{
- id            String          @id           @default(uuid())
- title         String 
- description   String 
- basePrice     Int 
-}
-
-model bids{
- id            String          @id           @default(uuid())
-}
-
-
-model payments{
- id            String          @id           @default(uuid())
-}
-
-
-
-enum paymentstatus{
+// --------------
+// Enums
+// --------------
+enum paymentstatus {
   Success
   Failed
   Pending
+}
+
+enum AuthProvider {
+  LOCAL
+  GOOGLE
+}
+
+// --------------
+// Models
+// --------------
+model admin {
+  id       String  @id @default(uuid())
+  name     String
+  email    String  @unique
+  // Password can be optional if you also support Google login
+  password String?
+
+  // Auth provider info
+  provider AuthProvider @default(LOCAL)
+  googleId String?
+
+  auctions auction[]
+
+  adminSessions adminSession[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model user {
+  id       String  @id @default(uuid())
+  name     String
+  email    String  @unique
+  // Password can be optional if Google login
+  password String?
+  verified Boolean @default(false)
+
+  // Auth provider info
+  provider AuthProvider @default(LOCAL)
+  googleId String? // Store the Google ID if user logs in with Google
+
+  // Bids placed by this user
+  biddings bid[]
+
+  winnings auction[] @relation("UserWonAuctions")
+
+  // Payment records for this user
+  payments payments[]
+
+  // Relationship for the bidWinners table
+  bidWinners bidWinners[]
+
+  // Refresh token sessions (for rotation)
+  userSessions userSession[]
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model auction {
+  id          String @id @default(uuid())
+  title       String
+  description String
+  basePrice   Int
+  adminId     String
+
+  winnerId String?
+  winner   user?   @relation("UserWonAuctions", fields: [winnerId], references: [id])
+
+  // Auction belongs to an admin
+  admin admin @relation(fields: [adminId], references: [id])
+
+  // A single auction can have multiple bids
+  biddings bid[]
+
+  // A single auction can also have multiple bidWinners records
+  bidWinners bidWinners[]
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model bid {
+  id        String  @id @default(uuid())
+  userId    String
+  user      user    @relation(fields: [userId], references: [id])
+  auctionId String
+  auction   auction @relation(fields: [auctionId], references: [id])
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model bidWinners {
+  id String @id @default(uuid())
+
+  userId String
+  user   user   @relation(fields: [userId], references: [id])
+
+  auctionId String
+  auction   auction @relation(fields: [auctionId], references: [id])
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model payments {
+  id     String        @id @default(uuid())
+  status paymentstatus
+  userId String
+  user   user          @relation(fields: [userId], references: [id])
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// --------------
+// Session Models
+// --------------
+model userSession {
+  id     String @id @default(uuid())
+  userId String
+  user   user   @relation(fields: [userId], references: [id])
+
+  refreshToken String
+  expiresAt    DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model adminSession {
+  id      String @id @default(uuid())
+  adminId String
+  admin   admin  @relation(fields: [adminId], references: [id])
+
+  refreshToken String
+  expiresAt    DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
